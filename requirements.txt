@@ -1,0 +1,16 @@
+# Core scientific stack
+numpy
+scipy
+
+# Machine learning
+scikit-learn
+
+# Gradient boosting (best models)
+lightgbm
+xgboost
+
+# Deep learning (only needed for model_cnn.py — optional)
+tensorflow
+
+# Plotting
+matplotlib
