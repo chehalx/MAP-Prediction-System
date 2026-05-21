@@ -1,7 +1,3 @@
-"""
-predict.py — Load all trained models, evaluate on test set, save plots.
-Run: python predict.py  (from project root)
-"""
 
 import os, sys, pickle, warnings
 import numpy as np
@@ -16,7 +12,7 @@ from common import load_data
 MODELS_DIR, PLOTS_DIR = "outputs/models", "outputs/plots"
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
-# ── Load data ──────────────────────────────────────────────────────────────────
+# Load data
 F_tr, F_te, y_tr, y_te, _ = load_data("data/dataset_train.npy", "data/dataset_test.npy")
 
 train_raw = np.load("data/dataset_train.npy")
@@ -36,7 +32,7 @@ ref_std   = float(X_tr_norm.std())
 X_tr_norm = norm_raw(X_tr_raw, ref_std)
 X_te_norm = norm_raw(X_te_raw, ref_std)  # align test amplitude to train
 
-# ── Predict helpers ────────────────────────────────────────────────────────────
+# Predict helpers
 def predict_sklearn(obj, F):
     if isinstance(obj, dict):
         p = obj["model"].predict(F).reshape(-1,1)
@@ -55,7 +51,7 @@ def predict_cnn(payload, X_norm, F_phys):
         p  = model(xr, xp).numpy().reshape(-1,1)
     return payload["qt"].inverse_transform(p).ravel()
 
-# ── Load all models & evaluate ─────────────────────────────────────────────────
+# Load all models & evaluate
 pkls = sorted(f for f in os.listdir(MODELS_DIR) if f.endswith(".pkl"))
 if not pkls: sys.exit(f"No models in {MODELS_DIR}/. Run notebooks/run_all.py first.")
 
@@ -77,7 +73,7 @@ for fname in pkls:
 ranked    = sorted(res.items(), key=lambda x: x[1]["test"])
 best_name = ranked[0][0]
 
-# ── Print table ────────────────────────────────────────────────────────────────
+# Print table
 print(f"\n{'Model':<22} {'Train':>8} {'Test':>8} {'Gap':>8}")
 print("-" * 52)
 for name, r in ranked:
@@ -85,7 +81,7 @@ for name, r in ranked:
     print(f"{name:<22} {r['train']:>8.3f} {r['test']:>8.3f} {r['gap']:>+8.3f}{tag}")
 print(f"\nBest: {best_name}  —  Test MAE = {ranked[0][1]['test']:.3f} mmHg")
 
-# ── Plot helpers ───────────────────────────────────────────────────────────────
+# Plot helpers
 def subplots():
     n = len(ranked)
     fig, axes = plt.subplots((n+2)//3, 3, figsize=(16, 5*((n+2)//3)))
@@ -105,7 +101,7 @@ def save(fname):
     plt.savefig(f"{PLOTS_DIR}/{fname}.png", dpi=130); plt.close()
     print(f"  {fname}.png")
 
-# ── Plot 1 — Scatter ───────────────────────────────────────────────────────────
+# Scatter Plot
 vlo = min(y_te.min(), min(r["pred"].min() for _,r in res.items())) - 2
 vhi = max(y_te.max(), max(r["pred"].max() for _,r in res.items())) + 2
 
@@ -124,7 +120,7 @@ for i, (name, r) in enumerate(ranked):
 fig.suptitle("True vs Predicted — Test Set  (points on diagonal = perfect)", fontsize=11)
 save("predict_scatter")
 
-# ── Plot 2 — Residuals ─────────────────────────────────────────────────────────
+# Residuals Plot
 fig, axes = subplots()
 for i, (name, r) in enumerate(ranked):
     ax = axes[i]; b = border(ax, name)
@@ -140,7 +136,7 @@ for i, (name, r) in enumerate(ranked):
 fig.suptitle("Residuals — tight cloud around zero = good model", fontsize=11)
 save("predict_residuals")
 
-# ── Plot 3 — MAE bars ──────────────────────────────────────────────────────────
+# MAE bars Plot
 x = np.arange(len(ranked))
 fig, ax = plt.subplots(figsize=(12, 4))
 bars = ax.bar(x-0.18, [r["test"]  for _,r in ranked], 0.32, label="Test MAE",  color="tomato",    alpha=0.85)
@@ -152,7 +148,7 @@ ax.set(ylabel="MAE (mmHg)", title="Train vs Test MAE — smaller gap = better ge
 ax.legend()
 save("predict_mae_bars")
 
-# ── Plot 4 — Trend comparison (required by brief) ─────────────────────────────
+# Trend comparison Plot
 best_pred = ranked[0][1]["pred"]
 idx = np.argsort(y_te)
 fig, ax = plt.subplots(figsize=(14, 5))
